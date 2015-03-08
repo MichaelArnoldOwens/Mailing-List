@@ -17,7 +17,8 @@ pg.connect(connectionString, function(err, client) {
  
 function sendQueuedMail(db){
     sendNewUsersInitialMessage(db);
-    // sendUsersSecondMessage(db);
+    sendUsersSecondMessage(db);
+    sendUsersThirdMessage(db);
     // other mails
 }
  
@@ -34,15 +35,25 @@ function sendNewUsersInitialMessage (db) {
     // Send the email to new users using mandrill
 }
 
-// function sendUsersSecondMessage (db) {
-//     // Query for new users
-//     db.query("SELECT email FROM users WHERE last_email_sent > 24;", function(err, result) {
-//         if (err) {
-//         } else {
-//             firstEmail(result.rows);
-//         }
-//       })
-// }
+function sendUsersSecondMessage (db) {
+    // Query for new users
+    db.query("SELECT email FROM users WHERE last_email_sent BETWEEN NOW() AND  NOW() - INTERVAL '1 day';", function(err, result) {
+        if (err) {
+        } else {
+            firstEmail(result.rows);
+        }
+      })
+}
+
+function sendUsersThirdMessage (db) {
+    // Query for new users
+    db.query("SELECT email FROM users WHERE last_email_sent BETWEEN NOW() AND  NOW() - INTERVAL '7 days';", function(err, result) {
+        if (err) {
+        } else {
+            firstEmail(result.rows);
+        }
+      })
+}
  
 function firstEmail (users) {
     var message = {
@@ -55,16 +66,16 @@ function firstEmail (users) {
     sendEmail(message);
 }
 
-// function secondEmail (users) {
-//     var message = {
-//     "text": "Second Email",
-//     "subject": "Second Email",
-//     "from_email": "troy@tradecrafted.com",
-//     "from_name": "not an example2",
-//     "to": users
-//     }
-//     sendEmail(message);
-// }
+function secondEmail (users) {
+    var message = {
+    "text": "Second Email",
+    "subject": "Second Email",
+    "from_email": "troy@tradecrafted.com",
+    "from_name": "not an example2",
+    "to": users
+    }
+    sendEmail(message);
+}
  
 function sendEmail(message){
     mandrill_client.messages.send({"message": message, "async": true }, function(result) {
