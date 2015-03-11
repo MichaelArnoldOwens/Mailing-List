@@ -1,5 +1,6 @@
+var mailer = {};
 var pg = require('pg');
- 
+
 // Connects to postgres once, on server start
 var connectionString = process.env.DATABASE_URL || "postgres://localhost/mailinglist";
  
@@ -11,6 +12,8 @@ pg.connect(connectionString, function(err, client) {
   if (err) {
     console.log(err);
   } else {
+    db = client;
+    mailer.db = db;
     sendQueuedMail(client)
   }
 });
@@ -24,12 +27,18 @@ function sendQueuedMail(db){
  
 function sendNewUsersInitialMessage (db) {
     // Query for new users
-    db.query("SELECT email FROM users WHERE last_email_sent IS NULL;", function(err, result) {
+     
+
+    mailer.db.query("SELECT email FROM users WHERE last_email_sent IS NULL;", function(err, result) {
         if (err) {
         } else {
             firstEmail(result.rows);
         }
       })
+
+    mailer.db.query("UPDATE users SET last_email_sent=NOW(), sequence='first' WHERE last_email_sent IS NULL;")
+
+
     // Assemble a new email
  
     // Send the email to new users using mandrill
@@ -37,22 +46,26 @@ function sendNewUsersInitialMessage (db) {
 
 function sendUsersSecondMessage (db) {
     // Query for new users
-    db.query("SELECT email FROM users WHERE last_email_sent BETWEEN NOW() AND  NOW() - INTERVAL '1 day';", function(err, result) {
+    mailer.db.query("SELECT email FROM users WHERE AND sequence='first', last_email_sent <= now() - interval '1 minute' ;", function(err, result) {
         if (err) {
         } else {
-            firstEmail(result.rows);
+            secondEmail(result.rows);
         }
       })
+
+     mailer.db.query("UPDATE users SET last_email_sent=NOW(), sequence='second' WHERE last_email_sent <= now() - interval '1 minute' AND sequence='first';")
 }
 
 function sendUsersThirdMessage (db) {
     // Query for new users
-    db.query("SELECT email FROM users WHERE last_email_sent BETWEEN NOW() AND  NOW() - INTERVAL '7 days';", function(err, result) {
+    mailer.db.query("SELECT email FROM users WHERE last_email_sent <= now() - interval '5 minute' AND sequence='second';", function(err, result) {
         if (err) {
         } else {
-            firstEmail(result.rows);
+            thirdEmail(result.rows);
         }
       })
+
+    mailer.db.query("UPDATE users SET last_email_sent=NOW(), sequence='third' WHERE last_email_sent <= now() - interval '5 minute' AND sequence='second';")
 }
  
 function firstEmail (users) {
@@ -76,6 +89,17 @@ function secondEmail (users) {
     }
     sendEmail(message);
 }
+
+function thirdEmail (users) {
+    var message = {
+    "text": "Third Email",
+    "subject": "Third Email",
+    "from_email": "Third@tradecrafted.com",
+    "from_name": "Third",
+    "to": users
+    }
+    sendEmail(message);
+}
  
 function sendEmail(message){
     mandrill_client.messages.send({"message": message, "async": true }, function(result) {
@@ -85,3 +109,5 @@ function sendEmail(message){
         console.log('A mandrill error occurred: ' + e.name + ' - ' + e.message);
     });
 }
+
+module.exports = mailer;

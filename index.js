@@ -7,7 +7,6 @@ var db;
 var conString = process.env['DATABASE_URL']
 var ejs = require('ejs');
 
-
 //logging middleware
 app.use(function(req,res,next) {
     console.log('Request at ', req.path);
@@ -36,7 +35,7 @@ app.post('/submit', function(request,response,next) {
         db.query("INSERT INTO users (email, last_email_sent) VALUES ($1, $2)", [request.body.email, null], function(err, result) {
         if (err) {
           if (err.code == "23502") {
-            err.explanation = "Didn't get all of the parameters in the request body. Send email and last_email_sent in the request body."
+            err.explanation = "Didn't get all of the parameters in the request body. Send email in the request body."
           }
           response.status(500).send(err);
         } else {
