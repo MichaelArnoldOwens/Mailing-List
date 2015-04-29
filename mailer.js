@@ -25,6 +25,7 @@ function sendQueuedMail(db){
     // other mails
 }
  
+ //sends users first email mesage
 function sendNewUsersInitialMessage (db) {
     // Query for new users
      
@@ -38,12 +39,12 @@ function sendNewUsersInitialMessage (db) {
 
     mailer.db.query("UPDATE users SET last_email_sent=NOW(), sequence='first' WHERE last_email_sent IS NULL;")
 
-
     // Assemble a new email
  
     // Send the email to new users using mandrill
 }
 
+//sends users second email mesage
 function sendUsersSecondMessage (db) {
     // Query for new users
     mailer.db.query("SELECT email FROM users WHERE AND sequence='first', last_email_sent <= now() - interval '1 minute' ;", function(err, result) {
@@ -56,6 +57,8 @@ function sendUsersSecondMessage (db) {
      mailer.db.query("UPDATE users SET last_email_sent=NOW(), sequence='second' WHERE last_email_sent <= now() - interval '1 minute' AND sequence='first';")
 }
 
+
+//sends users third email mesage
 function sendUsersThirdMessage (db) {
     // Query for new users
     mailer.db.query("SELECT email FROM users WHERE last_email_sent <= now() - interval '5 minute' AND sequence='second';", function(err, result) {
@@ -68,6 +71,7 @@ function sendUsersThirdMessage (db) {
     mailer.db.query("UPDATE users SET last_email_sent=NOW(), sequence='third' WHERE last_email_sent <= now() - interval '5 minute' AND sequence='second';")
 }
  
+ //first email mesage
 function firstEmail (users) {
     var message = {
     "text": "First email",
@@ -79,6 +83,7 @@ function firstEmail (users) {
     sendEmail(message);
 }
 
+//second email mesage
 function secondEmail (users) {
     var message = {
     "text": "Second Email",
@@ -90,6 +95,7 @@ function secondEmail (users) {
     sendEmail(message);
 }
 
+//third email mesage
 function thirdEmail (users) {
     var message = {
     "text": "Third Email",
@@ -101,6 +107,7 @@ function thirdEmail (users) {
     sendEmail(message);
 }
  
+ //sends email
 function sendEmail(message){
     mandrill_client.messages.send({"message": message, "async": true }, function(result) {
         console.log(result);
@@ -109,5 +116,13 @@ function sendEmail(message){
         console.log('A mandrill error occurred: ' + e.name + ' - ' + e.message);
     });
 }
+
+function messageBodyFromSequence(sequence, callback){
+    // Use the sequence to look for a file with that sequence number in it
+    //  Store that file's contents as a variable (call it something like messageBody)
+    // call a callback with the contents of the file as an argument:
+    callback(messageBody)
+}
+
 
 module.exports = mailer;
